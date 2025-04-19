@@ -12,7 +12,7 @@ export const getAllCurrencies = async (
     const obj = await getAllCurrenciesHelper();
     res.status(200).json({ success: true, data: obj });
   } catch (err) {
-    res.status(400).json({ success: false, error: err });
+    res.status(500).json({ success: false, error: 'Internal server error.' });
   }
 };
 
@@ -22,6 +22,10 @@ export const getSpecific = async (
   res: Response
 ): Promise<void> => {
   try {
+    const baseCurrency = req.params.baseCurrency;
+    if (!baseCurrency || typeof baseCurrency !== 'string') {
+      res.status(400).json({ success: false, error: 'Invalid base currency.' });
+    }
     const allCurrencies = await getAllCurrenciesHelper();
 
     if (allCurrencies !== -1) {
@@ -29,8 +33,8 @@ export const getSpecific = async (
         return (
           // USDTRY KISMINDAKİ TRY'Yİ BAZ ALIYOR EĞER BÜTÜN TRY PARİTELERİNİ ÇEKMEK İSTİYORSAN
           // SLİCE'Yİ KALDIR
-          item.name.slice(3).toLowerCase() ===
-          req.params.baseCurrency.toLowerCase()
+          // item.name.slice(3).toLowerCase() === baseCurrency.toLowerCase()
+          item.name.toLowerCase() === baseCurrency.toLowerCase()
         );
       });
 
@@ -41,7 +45,7 @@ export const getSpecific = async (
         .json({ success: false, error: 'Error fetching currencies' });
     }
   } catch (err) {
-    res.status(400).json({ success: false, error: err });
+    res.status(500).json({ success: false, error: 'Internal server error.' });
   }
 };
 
@@ -51,6 +55,11 @@ export const getPariteEvents = async (
   res: Response
 ): Promise<void> => {
   try {
+    const parites = req.params.parites;
+    if (!parites || typeof parites !== 'string' || parites.length < 6) {
+      res.status(400).json({ success: false, error: 'Invalid parite format.' });
+    }
+
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - 1);
     startDate.setUTCHours(21, 0, 0, 0);
@@ -64,16 +73,22 @@ export const getPariteEvents = async (
 
     const response = await fetch(
       `https://economic-calendar.tradingview.com/events?from=${fromDate}&to=${toDate}&currencies=${
-        req.params.parites.slice(0, 3) + ',' + req.params.parites.slice(3)
+        parites.slice(0, 3) + ',' + parites.slice(3)
       }`,
       getFetchOptions()
     );
+
+    if (!response.ok) {
+      res
+        .status(response.status)
+        .json({ success: false, error: 'Failed to fetch parite events.' });
+    }
 
     const obj = await response.json();
 
     res.status(200).json({ success: true, data: obj.result });
   } catch (err) {
-    res.status(400).json({ success: false, error: err });
+    res.status(500).json({ success: false, error: 'Internal server error.' });
   }
 };
 
@@ -83,6 +98,11 @@ export const getParitePerformances = async (
   res: Response
 ): Promise<void> => {
   try {
+    const parites = req.params.parites;
+    if (!parites || typeof parites !== 'string') {
+      res.status(400).json({ success: false, error: 'Invalid parite format.' });
+    }
+
     const options = {
       method: 'GET',
       headers: {
@@ -100,15 +120,21 @@ export const getParitePerformances = async (
     };
 
     const response = await fetch(
-      `https://scanner.tradingview.com/symbol?symbol=FX:${req.params.parites}&fields=change,Perf.5D,Perf.W,Perf.1M,Perf.6M,Perf.YTD,Perf.Y,Perf.5Y,Perf.All&no_404=true&label-product=symbols-performance`,
+      `https://scanner.tradingview.com/symbol?symbol=FX:${parites}&fields=change,Perf.5D,Perf.W,Perf.1M,Perf.6M,Perf.YTD,Perf.Y,Perf.5Y,Perf.All&no_404=true&label-product=symbols-performance`,
       options
     );
+
+    if (!response.ok) {
+      res
+        .status(response.status)
+        .json({ success: false, error: 'Failed to fetch performance data.' });
+    }
 
     const obj = await response.json();
 
     res.status(200).json({ success: true, data: obj });
   } catch (err) {
-    res.status(400).json({ success: false, error: err });
+    res.status(500).json({ success: false, error: 'Internal server error.' });
   }
 };
 
@@ -119,6 +145,15 @@ export const getPariteNews = async (
 ): Promise<void> => {
   try {
     const lang = req.params.lang;
+    const parites = req.params.parites;
+    if (
+      !lang ||
+      typeof lang !== 'string' ||
+      !parites ||
+      typeof parites !== 'string'
+    ) {
+      res.status(400).json({ success: false, error: 'Invalid parameters.' });
+    }
 
     const options = {
       method: 'GET',
@@ -137,15 +172,21 @@ export const getPariteNews = async (
     };
 
     const response = await fetch(
-      `https://news-mediator.tradingview.com/public/view/v1/symbol?filter=lang:${lang}&filter=symbol:FX:${req.params.parites}&client=landing&streaming=true`,
+      `https://news-mediator.tradingview.com/public/view/v1/symbol?filter=lang:${lang}&filter=symbol:FX:${parites}&client=landing&streaming=true`,
       options
     );
+
+    if (!response.ok) {
+      res
+        .status(response.status)
+        .json({ success: false, error: 'Failed to fetch parite news.' });
+    }
 
     const obj = await response.json();
 
     res.status(200).json({ success: true, data: obj.items });
   } catch (err) {
-    res.status(400).json({ success: false, error: err });
+    res.status(500).json({ success: false, error: 'Internal server error.' });
   }
 };
 
@@ -156,6 +197,17 @@ export const getReadNews = async (
 ): Promise<void> => {
   try {
     const storyPath = req.params.storyPath;
+    const lang = req.params.lang;
+
+    if (
+      !storyPath ||
+      typeof storyPath !== 'string' ||
+      !lang ||
+      typeof lang !== 'string'
+    ) {
+      res.status(400).json({ success: false, error: 'Invalid parameters.' });
+    }
+
     const options = {
       method: 'GET',
       headers: {
@@ -173,14 +225,20 @@ export const getReadNews = async (
     };
 
     const response = await fetch(
-      `https://news-headlines.tradingview.com/v3/story?id=tag:${storyPath}&lang=${req.params.lang}`,
+      `https://news-headlines.tradingview.com/v3/story?id=tag:${storyPath}&lang=${lang}`,
       options
     );
+
+    if (!response.ok) {
+      res
+        .status(response.status)
+        .json({ success: false, error: 'Failed to fetch news details.' });
+    }
 
     const obj = await response.json();
 
     res.status(200).json({ success: true, data: obj });
   } catch (err) {
-    res.status(400).json({ success: false, error: err });
+    res.status(500).json({ success: false, error: 'Internal server error.' });
   }
 };

@@ -1,8 +1,8 @@
 import express from 'express';
-import { getNew } from '../controllers/News.controller';
+import { getRssFeed } from '../controllers/News.controller';
 
 const router = express.Router();
 
-router.get('/', getNew);
+router.post('/', getRssFeed);
 
 module.exports = router;

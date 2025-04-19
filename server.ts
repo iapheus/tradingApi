@@ -4,6 +4,7 @@ import stockRoute from './routes/Stock.route';
 import newsRoute from './routes/News.route';
 
 const app = express();
+app.use(express.json());
 
 app.listen(3000, '0.0.0.0', (error) => {
   if (!error) {
