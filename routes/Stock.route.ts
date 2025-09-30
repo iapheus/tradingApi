@@ -1,10 +1,10 @@
 import express from 'express';
 import {
-  getMarkets,
-  getStocks,
-  stockSearch,
-  getStockNews,
-  getStockPerformance,
+	getMarkets,
+	getStocks,
+	stockSearch,
+	getStockNews,
+	getStockPerformance,
 } from '../controllers/Stock.controller';
 
 const router = express.Router();
@@ -24,4 +24,4 @@ router.get('/news/', getStockNews);
 // GET -> /performance -> Gets all the performance -> ?stockName
 router.get('/performance/', getStockPerformance);
 
-module.exports = router;
+export default router;
